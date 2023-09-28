@@ -37,6 +37,80 @@ def user_detail(user_id):
     user = crud.get_user_by_id(user_id)
     return render_template('user_details.html', user=user)
 
+@app.route('/users', methods=["POST"])
+def register_user():
+    email = request.form.get('email')
+    password = request.form.get('password')
+    user = crud.get_user_by_email(email)
+    if user:
+        flash('A user with that email already exists. Please try again.')
+    else:
+        db.session.add(crud.create_user(email, password))
+        db.session.commit()
+        flash('Your account was successfully created.')
+    return redirect('/')
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.form.get('email')
+    password = request.form.get('password')
+    user = crud.get_user_by_email(email)
+    if user:
+        if password == user.password:
+            session['user'] = user.user_id
+            flash('Logged in!')
+            return redirect('/')
+        else: 
+            flash('Wrong password :(')
+            return redirect('/')
+    else:
+        flash('There is no user with this email.')
+        return redirect('/')
+
+@app.route('/rate-movie', methods=['POST'])
+def add_rating():
+    if session['user']:
+        rating = request.form.get('rating')
+
+        movie_title = request.form.get('movie_title')
+        movie = crud.get_movie_by_title(movie_title)
+
+        new_rating = crud.create_rating(session['user'], movie, rating)
+
+        db.session.add(new_rating)
+        db.session.commit()
+
+        flash(f"Your rating has been added to {movie_title}!")
+        return redirect('/movies')
+    else:
+        flash("Please log in before submitting a rating.")
+        return redirect('/movies')
+
+
+    
+# steps:
+
+# - make form in movie_details.html
+#     post request
+#     action goes to flask route
+#     use dropdown menu 1-5
+#     submit
+
+
+# in server.py:
+
+#     make route
+
+#     check if user logged in
+#         get rating info out of post request
+#         create instance of Rating class
+#         add + commit rating to db
+#         flash rating confirmation
+#         redirect to movie details page
+#     else:
+#         flash('please log in') message
+#         redirect to homepage
+
 
 if __name__ == "__main__":
     connect_to_db(app)
